@@ -34,6 +34,8 @@ async def on_message(message):
             img = mod.ImageObject()
         
             await channel.send(f"{img.base_image}")
+        elif message.content.lower().startswith(f"{prefix}help"):
+            await commands.help_command(channel, client)
     
     
 # run bot
