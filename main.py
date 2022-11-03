@@ -32,7 +32,6 @@ async def on_message(message):
             
             
             img = mod.ImageObject()
-            print(dir(img))
         
             await channel.send(f"{img.base_image}")
     
