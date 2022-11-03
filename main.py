@@ -11,6 +11,10 @@ import modifiers as mod
 import commands
 
 # Bot side
+
+def _startswith(message, cmd):
+    return message.content.lower().startswith(cmd)
+
 load_dotenv()
 token = os.getenv("DISCORD_TOKEN")
 
@@ -27,14 +31,14 @@ async def on_message(message):
     channel = message.channel
     if message.author != client.user:
         # commands
-        if message.content.lower().startswith(f"{prefix}hi"):    
+        if _startswith(message, f"{prefix}hi"):    
             await channel.send("heres a numpy array 😀")
             
             
             img = mod.ImageObject()
         
             await channel.send(f"{img.base_image}")
-        elif message.content.lower().startswith(f"{prefix}help"):
+        elif _startswith(message, f"{prefix}help"):
             await commands.help_command(channel, client)
     
     
