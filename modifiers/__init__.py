@@ -12,7 +12,9 @@ class ImageObject:
     def convert_array_to_img(self):
         self.image = Image.fromarray(np.int8(self.base_image*255))
         return self.image
-    
+
+
+img = ImageObject()
     
 if __name__ == '__main__':
     img = ImageObject()
