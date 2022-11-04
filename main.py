@@ -11,6 +11,9 @@ import modifiers as mod
 import commands
 
 # Bot side
+def _startswith(message, cmd):
+    return message.content.lower().startswith(cmd)
+
 
 def _startswith(message, cmd):
     return message.content.lower().startswith(cmd)
@@ -24,22 +27,31 @@ client = discord.Client()
 
 @client.event
 async def on_ready():
+    await client.change_presence(activity=discord.Game('Image Manipulation Workshop'))
     print(f"logged in as {client.user}")
 
 @client.event
-async def on_message(message):
+async def on_message(message: discord.Message):
     channel = message.channel
     if message.author != client.user:
         # commands
+        if _startswith(message, f"{prefix}array"):    
+            await channel.send("heres the current array that will produce your image 😀")    
         if _startswith(message, f"{prefix}hi"):    
             await channel.send("heres a numpy array 😀")
             
             
             img = mod.ImageObject()
         
+            await channel.send(f"{mod.img.base_image}")
+        elif _startswith(message, f"{prefix}help"):
             await channel.send(f"{img.base_image}")
         elif _startswith(message, f"{prefix}help"):
             await commands.help_command(channel, client)
+        elif _startswith(message, f"{prefix}init"):
+            await commands.init_command(channel, client)
+        else:
+            await channel.send("Unkown command, type: `!?!help` for help")
     
     
 # run bot
