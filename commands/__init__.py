@@ -24,7 +24,9 @@ async def help_command(ctx: discord.TextChannel, client: discord.Client):
     
     await ctx.send(embed=embed)
 
-async def init_command(ctx: discord.TextChannel, client: discord.Client):
+async def init_command(msg: discord.Message, client: discord.Client):
+    ctx: discord.TextChannel = msg.channel
+    
     embed = discord.Embed(title="Initialize Image", 
                           description="Select which image you want to edit",
                           color=discord.Color.dark_red())
@@ -40,12 +42,15 @@ async def init_command(ctx: discord.TextChannel, client: discord.Client):
     await sent_embed.add_reaction("📂")
 
     def _check(rctn, user):
-        return user.id == ctx.author.id and str(rctn) == "📂"
-
+        return user.id == msg.author.id and str(rctn) == "📂"
 
     try:
         rctn, reacted = await client.wait_for("reaction_add", check=_check, timeout=30)
     except asyncio.TimeoutError:
         pass
-
-    print(reacted)
+    
+    if reacted:
+        mod.init_file()
+        
+        await ctx.send(mod.img.base_image)
+        mod.img.image.show()

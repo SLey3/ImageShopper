@@ -37,19 +37,11 @@ async def on_message(message: discord.Message):
         # commands
         if _startswith(message, f"{prefix}array"):    
             await channel.send("heres the current array that will produce your image 😀")    
-        if _startswith(message, f"{prefix}hi"):    
-            await channel.send("heres a numpy array 😀")
-            
-            
-            img = mod.ImageObject()
-        
             await channel.send(f"{mod.img.base_image}")
-        elif _startswith(message, f"{prefix}help"):
-            await channel.send(f"{img.base_image}")
         elif _startswith(message, f"{prefix}help"):
             await commands.help_command(channel, client)
         elif _startswith(message, f"{prefix}init"):
-            await commands.init_command(channel, client)
+            await commands.init_command(message, client)
         else:
             await channel.send("Unkown command, type: `!?!help` for help")
     
