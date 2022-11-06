@@ -45,32 +45,75 @@ async def run_command(msg: discord.Message, client: discord.Client):
 
     def _check(rctn, user):
         return user.id == msg.author.id and str(rctn) == "📂"
+    
 
     try:
-        rctn, reacted = await client.wait_for("reaction_add", check=_check, timeout=30)
+        rctn, reacted = await client.wait_for("reaction_add", check=_check, timeout=10)
     except asyncio.TimeoutError:
         pass
     
     if reacted:
-        await  sent_embed.remove_reaction("📂", reacted)
+        await sent_embed.remove_reaction("📂", reacted)
         mod.init_file()
 
-        main_functionality_menu_embed = discord.Embed(title="Select Functionality",
-                                                      color=discord.Color.purple())
-
-        main_functionality_menu_embed.set_author(name=client.user.name,
-                                                 icon_url=client.user.avatar_url)
-
-        main_functionality_menu_embed.set_thumbnail(url=f"attachment://{mod.img.image.filename}")
+        await main_functionality_prompt(msg, ctx, client)
         
-        desc = """
-        >>> <:arrow_up_down:1038150600510165093> : Flip vertically
-        <:left_right_arrow:1038150773730713661> : Flip vertically
-        <:grey_exclamation:1038150998549598288> : Grayscale
-        <:person_surfing:1038151315735449641> : Equalize
-        """
 
-        main_functionality_menu_embed.add_field(name="__**Reactions:**__", value=desc)
+async def main_functionality_prompt(msg: discord.Message, ctx: discord.TextChannel, client: discord.Client):
+    main_functionality_menu_embed = discord.Embed(title="Select Functionality",
+                                                    color=discord.Color.purple())
 
-        sent_embed: discord.Message = await ctx.send(file=mod.img.discord_file, embed=main_functionality_menu_embed)
+    main_functionality_menu_embed.set_author(name=client.user.name,
+                                                icon_url=client.user.avatar_url)
 
+    main_functionality_menu_embed.set_thumbnail(url=f"attachment://{mod.img.image.filename}")
+    
+    reactions = [
+        8597,
+        8596,
+        10069,
+        127940
+    ]
+    
+    desc = f"""
+    >>> {chr(reactions[0])} : Flip vertically
+    {chr(reactions[1])} : Flip vertically
+    {chr(reactions[2])} : Grayscale
+    {chr(reactions[3])} : Equalize
+    """
+
+    main_functionality_menu_embed.add_field(name="__**Reactions:**__", value=desc)
+
+    sent_embed: discord.Message = await ctx.send(file=mod.img.discord_file, embed=main_functionality_menu_embed)
+    await sent_embed.add_reaction(chr(reactions[0]))
+    await sent_embed.add_reaction(chr(reactions[1]))
+    await sent_embed.add_reaction(chr(reactions[2]))
+    await sent_embed.add_reaction(chr(reactions[3]))
+    
+    def _check(rctn, user):
+        return user.id == msg.author.id and ord(rctn.emoji) in reactions 
+    
+    rctn, reacted = None, None # to avoid UnboundLocarError
+    
+    try:
+        rctn, reacted = await client.wait_for("reaction_add", check=_check, timeout=10)
+    except asyncio.TimeoutError:
+        pass
+    
+    if reacted:
+        await sent_embed.remove_reaction(rctn, reacted)
+        
+        if rctn.emoji == chr(reactions[0]):
+            # flip vertical
+            print("flip vertical")
+        elif rctn.emoji == chr(reactions[1]):
+            # flip horizontal
+            print("flip horizontal")
+        elif rctn.emoji == chr(reactions[2]):
+            # grayscale
+            print("grayscale")
+        elif rctn.emoji == chr(reactions[3]):
+            # equalize
+            print("equalize")
+        else:
+            print("None. Something wrong happened")
