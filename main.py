@@ -14,10 +14,6 @@ import commands
 def _startswith(message, cmd):
     return message.content.lower().startswith(cmd)
 
-
-def _startswith(message, cmd):
-    return message.content.lower().startswith(cmd)
-
 load_dotenv()
 token = os.getenv("DISCORD_TOKEN")
 

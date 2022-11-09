@@ -1,4 +1,5 @@
 # Imports
+from io import BytesIO
 import discord
 import modifiers as mod
 import asyncio
@@ -50,13 +51,14 @@ async def run_command(msg: discord.Message, client: discord.Client):
     try:
         rctn, reacted = await client.wait_for("reaction_add", check=_check, timeout=10)
     except asyncio.TimeoutError:
-        pass
+        await ctx.send("You took too long to respond!")
+        return
     
     if reacted:
         await sent_embed.remove_reaction("📂", reacted)
-        mod.init_file()
-
-        await main_functionality_prompt(msg, ctx, client)
+        res = mod.init_file()
+        if res:
+            await main_functionality_prompt(msg, ctx, client)
         
 
 async def main_functionality_prompt(msg: discord.Message, ctx: discord.TextChannel, client: discord.Client):
@@ -77,7 +79,7 @@ async def main_functionality_prompt(msg: discord.Message, ctx: discord.TextChann
     
     desc = f"""
     >>> {chr(reactions[0])} : Flip vertically
-    {chr(reactions[1])} : Flip vertically
+    {chr(reactions[1])} : Flip horizontal
     {chr(reactions[2])} : Grayscale
     {chr(reactions[3])} : Equalize
     """
@@ -85,6 +87,7 @@ async def main_functionality_prompt(msg: discord.Message, ctx: discord.TextChann
     main_functionality_menu_embed.add_field(name="__**Reactions:**__", value=desc)
 
     sent_embed: discord.Message = await ctx.send(file=mod.img.discord_file, embed=main_functionality_menu_embed)
+    mod.img.discord_file.close()
     await sent_embed.add_reaction(chr(reactions[0]))
     await sent_embed.add_reaction(chr(reactions[1]))
     await sent_embed.add_reaction(chr(reactions[2]))
@@ -98,22 +101,40 @@ async def main_functionality_prompt(msg: discord.Message, ctx: discord.TextChann
     try:
         rctn, reacted = await client.wait_for("reaction_add", check=_check, timeout=10)
     except asyncio.TimeoutError:
-        pass
+        await ctx.send("you took too long to respond!")
+        return
     
     if reacted:
         await sent_embed.remove_reaction(rctn, reacted)
         
         if rctn.emoji == chr(reactions[0]):
             # flip vertical
-            print("flip vertical")
+            mod.flip_vertical()
         elif rctn.emoji == chr(reactions[1]):
             # flip horizontal
-            print("flip horizontal")
+            mod.flip_horizontal()
         elif rctn.emoji == chr(reactions[2]):
             # grayscale
             print("grayscale")
         elif rctn.emoji == chr(reactions[3]):
             # equalize
             print("equalize")
-        else:
-            print("None. Something wrong happened")
+
+
+        def check(msg):
+            return msg.channel.id == ctx.id
+
+        await ctx.send("Do you want to stop and save? (Y or N)")
+
+        res: discord.Message = await client.wait_for('message', check=check)
+
+        if res.content.capitalize() == "Y":
+            img = mod.img.convert_array_to_img()
+
+            img.filename = mod.img.image_name
+            img.format = mod.img.image_type
+
+            file = discord.File(BytesIO(img.tobytes()), filename=img.filename, spoiler=True)
+
+            await ctx.send(file=file ,mention_author=True)
+
