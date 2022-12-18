@@ -32,14 +32,15 @@ async def on_message(message: discord.Message):
     if message.author != client.user:
         # commands
         if _startswith(message, f"{prefix}array"):    
-            await channel.send("heres the current array that will produce your image 😀")    
+            await channel.send(f"heres the current array that will produce your image {chr(128512)}")    
             await channel.send(f"{mod.img.base_image}")
         elif _startswith(message, f"{prefix}help"):
             await commands.help_command(channel, client)
         elif _startswith(message, f"{prefix}run"):
             await commands.run_command(message, client)
         else:
-            await channel.send("Unkown command, type: `!?!help` for help")
+            if not mod.img.in_sess:
+                await channel.send("Unkown command, type: `!?!help` for help")
     
     
 # run bot

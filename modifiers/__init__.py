@@ -1,10 +1,11 @@
 # Imports
-from PIL import Image, ImageOps
-from io import BytesIO
+from PIL import Image, ImageSequence, ImageOps
 import numpy as np
 import attr
-import easygui
 import discord
+import requests
+import shutil
+import os
 
 ALLOWED_FILE_EXT = [
     "*.jpg",
@@ -29,8 +30,10 @@ FILE_EXT_BIT = {
     "BMP": np.int32
 }
 
+BASE_TEMP_FP = os.path.join(os.getcwd(), "modifiers", "temp")
+
 @attr.s(slots=True)
-class ImageObject:
+class ImageSettings:
     """
     Image class that contains all necessary attributes for manipulating images
     """
@@ -40,65 +43,93 @@ class ImageObject:
     discord_file = attr.ib(default=None, type=discord.File)
     image_name = attr.ib(default=None, type=str)
     image_type = attr.ib(default="PNG", type=str)
-    
-    def convert_array_to_img(self):
-        self.image = Image.fromarray(FILE_EXT_BIT[self.image_type](self.base_image*255))
-        return self.image
+    temp_file_fp = attr.ib(default="", type=str)
+    save = attr.ib(default=False, type=bool)
+    in_sess = attr.ib(default=False, type=bool)
 
     def reset_to_defaults(self):
+        """
+        reset image settings back to defaults
+        """
         self.image = None
         self.base_image = np.zeros((int(256/2), int(256/2)), dtype=np.int64)
         self.discord_file.close()
         self.discord_file = None
         self.image_type = "PNG"
         self.image_name = None
+        self.temp_file_fp = ""
+        self.in_sess = False
 
 
-img = ImageObject()
+img = ImageSettings()
 
 def flip_vertical():
     """
     flips the image top to bottom or vice versa
     """
-    img.image = img.image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+    if img.image_type == "GIF":
+        new_frames = []
+        new_image = Image.new("RGB", img.image.size, (255, 255, 255))
+
+        for frame in ImageSequence.Iterator(img.image):
+            new_frames.append(frame.transpose(Image.Transpose.FLIP_TOP_BOTTOM))
+
+        new_image.save(img.temp_file_fp, save_all=True, append_images=new_frames)
+
+        # reopen and configure the image
+        new_image = discord.File(img.temp_file_fp)
+        img.discord_file = new_image
+        img.image = Image.open(img.temp_file_fp)
+    else:
+        img.image = img.image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+
     img.base_image = np.array(img.image, dtype=FILE_EXT_BIT[img.image_type])
 
 def flip_horizontal():
     if img.image_type == "GIF":
         image = img.image
-        for n in range(0, image.n_frames):
-            image.seek(n)
-            image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
-    img.image = image
+        new_frames = []
+
+        new_image = Image.new("RGB", image.size, (255, 255, 255))
+        for frame in ImageSequence.Iterator(image):
+            new_frames.append(frame.transpose(Image.Transpose.FLIP_LEFT_RIGHT))
+
+        new_image.save(img.temp_file_fp, save_all=True, append_images=new_frames) # Due to the image is a GIF file, all frames must be overwritten
+        
+        # reopen and configure the image
+        new_image = discord.File(img.temp_file_fp)
+        img.discord_file = new_image
+        img.image = Image.open(img.temp_file_fp)
+
+    else:
+        img.image = img.image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+
     img.base_image = np.array(img.image, dtype=FILE_EXT_BIT[img.image_type])
 
-def init_file():
+async def init_file(attachment: discord.Attachment, ctx: discord.TextChannel):
     """
     Initialization portion to get and confirgure image file for :class:ImageObject
     """
-    file = easygui.fileopenbox("Choose image file",
-                               "Open File",
-                               filetypes=ALLOWED_FILE_EXT) # Issues: 
-                                                            # Windows: Dialog hides behind discord fullscreen
-                                                            # MacOs: Tk titled window visible, included after file dialog is removed after user either selected an image or closed out
 
-    if file is None:
+    res = requests.get(attachment.url, stream=True)
+    
+    if res.status_code == 200:
+        img.temp_file_fp = os.path.join(BASE_TEMP_FP, f"{attachment.filename}")
+        with open(img.temp_file_fp, 'wb') as temp:
+            shutil.copyfileobj(res.raw, temp)
+    else:
+        await ctx.send(f'''Failed to connect to the discord CDN, unable to process further commands untill CDN is available again.\n
+                           -------------------------------------------------------------------------------------------------------\n
+                           Status Code: {res.status_code}''')
         return False
 
-    _img = Image.open(file)
+    img_file = discord.File(img.temp_file_fp, filename=attachment.filename)
+
+    _img = Image.open(img.temp_file_fp)
     img_array = np.array(_img, dtype=FILE_EXT_BIT[_img.format])
     img.image = _img
     img.base_image = img_array
     img.image_type = _img.format
     img.image_name = _img.filename
-
-    dfile = discord.File(file, filename=_img.filename)
-
-    img.discord_file = dfile
+    img.discord_file = img_file
     return True
-    
-if __name__ == '__main__':
-    img = ImageObject()
-    print(img.base_image)
-    res = img.convert_array_to_img()
-    res.show()
