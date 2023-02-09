@@ -58,7 +58,12 @@ async def run_command(msg: discord.Message, client: discord.Client):
         return
     
     if msg:
-        
+        try:
+            img_attachment = msg.attachments[0]
+        except IndexError:
+            await ctx.send("No attachment was detected. Make sure to send **only** an **image attachment** Rerun `!?!run` to try again.")
+            return
+
         save_embed = discord.Embed(title="Save Image",
                                    description="Decide whether you want to save the image after your finished.",
                                    color=discord.Color.blue())
@@ -93,7 +98,7 @@ async def run_command(msg: discord.Message, client: discord.Client):
             if rctn.emoji == chr(reactions[0]): # Yes
                 mod.img.save = True
 
-        res = await mod.init_file(msg.attachments[0], ctx)
+        res = await mod.init_file(img_attachment, ctx)
         if res:
             await main_functionality_prompt(msg, ctx, client)
         
@@ -157,10 +162,10 @@ async def main_functionality_prompt(msg: discord.Message, ctx: discord.TextChann
                 mod.flip_horizontal()
             elif rctn.emoji == chr(reactions[2]):
                 # grayscale
-                print("grayscale")
+                mod.grayscale()
             elif rctn.emoji == chr(reactions[3]):
                 # equalize
-                print("equalize")
+                mod.equalize()
             else:
                 await ctx.send(mod.img.base_image)
 
@@ -187,7 +192,7 @@ async def main_functionality_prompt(msg: discord.Message, ctx: discord.TextChann
 
                 in_run = False
             elif res.content.capitalize() == "N":
-                await ctx.send("Do you want to save this current rendition? (Y or N)")
+                await ctx.send("Do you want to see the current rendition? (Y or N)")
 
                 res: discord.Message = await client.wait_for("message", check=check)
 
@@ -195,8 +200,7 @@ async def main_functionality_prompt(msg: discord.Message, ctx: discord.TextChann
                     mod.img.discord_file.close()
                     file = discord.File(mod.img.temp_file_fp, filename=mod.img.image_name, spoiler=True)
 
-                    await ctx.send(f"**__CURRENT RENDITION__**")
-                    await ctx.send(file=file)
+                    await ctx.send(content=f"**__CURRENT RENDITION__**", file=file)
                     file.spoiler = False
                     mod.img.discord_file = file
 

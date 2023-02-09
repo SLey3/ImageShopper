@@ -4,15 +4,11 @@ ImageShopper Discord Bot for Image Manipulating Functionality with pillow and nu
 
 # imports
 from dotenv import load_dotenv
+from typing import List
 import os
 import discord
-import asyncio
 import modifiers as mod
 import commands
-
-# Bot side
-def _startswith(message, cmd):
-    return message.content.lower().startswith(cmd)
 
 load_dotenv()
 token = os.getenv("DISCORD_TOKEN")
@@ -30,17 +26,19 @@ async def on_ready():
 async def on_message(message: discord.Message):
     channel = message.channel
     if message.author != client.user:
-        # commands
-        if _startswith(message, f"{prefix}array"):    
-            await channel.send(f"heres the current array that will produce your image {chr(128512)}")    
-            await channel.send(f"{mod.img.base_image}")
-        elif _startswith(message, f"{prefix}help"):
-            await commands.help_command(channel, client)
-        elif _startswith(message, f"{prefix}run"):
-            await commands.run_command(message, client)
-        else:
-            if not mod.img.in_sess:
-                await channel.send("Unkown command, type: `!?!help` for help")
+        msg: List[str] = message.content.split(prefix)
+        if msg[0] == "":
+            # commands
+            try:
+                if msg[1] == "help":
+                    await commands.help_command(channel, client)
+                elif msg[1] == "run":
+                    await commands.run_command(message, client)
+                else:
+                    if not mod.img.in_sess: # prevents this from showing up when a user is in session
+                        await channel.send("Unkown command, type: `!?!help` for help")
+            except IndexError:
+                pass
     
     
 # run bot
